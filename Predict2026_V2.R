@@ -63,13 +63,24 @@ TransitionData <- DecadeHitterData %>%
     HardHit_delta = HardHit_Perc - lag(HardHit_Perc, 1),
     EV_delta = EV - lag(EV, 1),
     
-    wOBA_roll2 = rollapply(wOBA, 2, mean, align = "right", fill = NA),
+    wOBA_roll2 = rollapply(wOBA, 2, mean, align = "right", fill = NA),                                  # Applies a rolling avgs for past 2 and 3 years
     wOBA_roll3 = rollapply(wOBA, 3, mean, align = "right", fill = NA),
     OPS_roll2 = rollapply(OPS, 2, mean, align = "right", fill = NA),
     OPS_roll3 = rollapply(OPS, 3, mean, align = "right", fill = NA),
     K_roll2 = rollapply(K_Perc, 2, mean, align = "right", fill = NA),
     BB_roll2 = rollapply(BB_Perc, 2, mean, align = "right", fill = NA),
-    EV_roll2 = rollapply(EV, 2, mean, align = "right", fill = NA)
+    EV_roll2 = rollapply(EV, 2, mean, align = "right", fill = NA),
+    
+    wOBA_roll_wt = ifelse(row_number() >= 3,                                                           # Adds weights rolling avgs, most recent weighs more
+                          0.6 * lag(wOBA, 1) + 0.3 * lag(wOBA, 2) + 0.1 * lag(wOBA, 3), NA),
+    OPS_roll_wt = ifelse(row_number() >= 3,
+                         0.6 * lag(OPS, 1) + 0.3 * lag(OPS, 2) + 0.1 * lag(OPS, 3), NA),
+    K_roll_wt = ifelse(row_number() >= 3,
+                       0.6 * lag(K_Perc, 1) + 0.3 * lag(K_Perc, 2) + 0.1 * lag(K_Perc, 3), NA),
+    BB_roll_wt = ifelse(row_number() >= 3,
+                        0.6 * lag(BB_Perc, 1) + 0.3 * lag(BB_Perc, 2) + 0.1 * lag(BB_Perc, 3), NA),
+    EV_roll_wt = ifelse(row_number() >= 3,
+                        0.6 * lag(EV, 1) + 0.3 * lag(EV, 2) + 0.1 * lag(EV, 3), NA),
   ) %>%
   ungroup()
 
@@ -82,10 +93,11 @@ TransitionData <- DecadeHitterData %>%
 # The data we want to use to train the model
 
 train_data <- TransitionData %>%
-  filter(Season <= 2024 & !is.na(wOBA_next)) %>%                                    # Remove 2025 season rows, there is not w_OBA next (next season: 2026, has not happened)
+  filter(Season <= 2024 & !is.na(wOBA_next)) %>%                                                 # Remove 2025 season rows, there is not wOBA_next (next season: 2026, has not happened)
   drop_na(all_of(c("wOBA_delta", "OPS_delta", "K_delta",
                    "BB_delta", "Barrel_delta", "HardHit_delta", "EV_delta", "wOBA_roll2",
-                   "wOBA_roll3", "OPS_roll2", "OPS_roll3", "K_roll2", "BB_roll2", "EV_roll2")))       # Removes any first year data (2015/rookies, players that only have 1 logged season)
+                   "wOBA_roll3", "OPS_roll2", "OPS_roll3", "K_roll2", "BB_roll2", "EV_roll2",
+                   "wOBA_roll_wt", "OPS_roll_wt", "K_roll_wt", "BB_roll_wt", "EV_roll_wt")))       
 
 # The data we want the trained model to apply to 
 
@@ -101,8 +113,11 @@ predict_data <- TransitionData %>% filter(Season == 2025)
 
 predictors_returning <- c("wOBA", "xwOBA", "OPS", "BB_Perc", "K_Perc", "Barrel_Perc", "HardHit_Perc",
                           "EV", "wOBA_delta", "OPS_delta", "K_delta", "BB_delta",
-                          "Barrel_delta", "HardHit_delta", "EV_delta", "wOBA_roll2",
-                          "wOBA_roll3", "OPS_roll2", "OPS_roll3", "K_roll2", "BB_roll2", "EV_roll2")
+                          "Barrel_delta", "HardHit_delta", "EV_delta", 
+                          "wOBA_roll2","wOBA_roll3", "wOBA_roll_wt", 
+                          "OPS_roll2", "OPS_roll3", "OPS_roll_wt", 
+                          "K_roll2", "K_roll_wt", "BB_roll2", "BB_roll_wt",
+                          "EV_roll2", "EV_roll_wt")
 
 # variables that are only available for rookies (current season metrics)
 
