@@ -87,7 +87,7 @@ train_data <- TransitionData %>%
                    "BB_delta", "Barrel_delta", "HardHit_delta", "EV_delta", "wOBA_roll2",
                    "wOBA_roll3", "OPS_roll2", "OPS_roll3", "K_roll2", "BB_roll2", "EV_roll2")))       
 
- 
+
 
 predict_data <- TransitionData %>% filter(Season == 2025)                                            # The data we want the trained model to apply to 
 
